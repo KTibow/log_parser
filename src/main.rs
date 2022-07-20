@@ -23,7 +23,7 @@ fn main() {
         let optifine_version = captures.get(1).unwrap().as_str();
         print!("Optifine {}. ", optifine_version);
     }
-    if log_contents.contains("featherOpt") {
+    if log_contents.contains("FeatherOpt") {
         print!("Feather \"Client\" is not supported, ask discord.gg/feather. ");
     }
     let mod_list_marker = "States: 'U' = Unloaded 'L' = Loaded 'C' = Constructed 'H' = Pre-initialized 'I' = Initialized 'J' = Post-initialized 'A' = Available 'D' = Disabled 'E' = Errored";
