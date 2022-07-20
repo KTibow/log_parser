@@ -27,6 +27,7 @@ fn main() {
         print!("Feather \"Client\" is not supported, ask discord.gg/feather. ");
     }
     let mod_list_marker = "States: 'U' = Unloaded 'L' = Loaded 'C' = Constructed 'H' = Pre-initialized 'I' = Initialized 'J' = Post-initialized 'A' = Available 'D' = Disabled 'E' = Errored";
+    let mut corrupt_mods_detected = Vec::new();
     if log_contents.contains(mod_list_marker) {
         let mod_re =
             Regex::new(r"(?:\| UCHIJA \| ([a-zA-Z ']+?)\s+\| .+?\s+\| (.+?)\s+\||(?:UCHIJA\t)?([a-zA-Z ']+?)\{.+?\} \[.+?\] \((.+?)\) )").unwrap();
@@ -55,6 +56,14 @@ fn main() {
                         || dash_re.is_match(mod_id)
                     {
                         return None;
+                    }
+                    let mod_file = captures
+                        .get(2)
+                        .or_else(|| captures.get(4))
+                        .unwrap()
+                        .as_str();
+                    if mod_id == "null" {
+                        corrupt_mods_detected.push(mod_file);
                     }
                     Some(mod_id)
                 } else {
@@ -148,6 +157,9 @@ fn main() {
         println!("**Recommendations**");
         for recommendation in &recommendations_found {
             println!("- {}", recommendation);
+        }
+        for corrupt_mod in &corrupt_mods_detected {
+            println!("- {} might be corrupt, try removing it", corrupt_mod);
         }
     }
     if !solutions_found.is_empty() {
