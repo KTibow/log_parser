@@ -28,24 +28,31 @@ fn main() {
     }
     let mod_list_marker = "States: 'U' = Unloaded 'L' = Loaded 'C' = Constructed 'H' = Pre-initialized 'I' = Initialized 'J' = Post-initialized 'A' = Available 'D' = Disabled 'E' = Errored";
     if log_contents.contains(mod_list_marker) {
-        let mod_re = Regex::new(r"\| UCHIJA \| ([a-zA-Z ']+?)\s+\| .+?\s+\| (.+?)\s+\|").unwrap();
+        let mod_re =
+            Regex::new(r"(?:\| UCHIJA \| ([a-zA-Z ']+?)\s+\| .+?\s+\| (.+?)\s+\||(?:UCHIJA\t)?([a-zA-Z ']+?)\{.+?\} \[.+?\] \((.+?)\) )").unwrap();
+        let dash_re = Regex::new(r"^-+$").unwrap();
         let mods_used = log_contents
             .split(mod_list_marker)
             .nth(1)
             .unwrap()
-            .split("\n\n")
-            .nth(1)
+            .split("Loaded coremods (and transformers):")
+            .nth(0)
             .unwrap()
             .split("\n")
-            .skip(3)
             .filter_map(|line| {
                 if let Some(captures) = mod_re.captures(line) {
-                    let mod_id = captures.get(1).unwrap().as_str();
+                    let mod_id = captures
+                        .get(1)
+                        .or_else(|| captures.get(3))
+                        .unwrap()
+                        .as_str();
                     if mod_id == "mcp"
                         || mod_id == "Forge"
                         || mod_id == "FML"
                         || mod_id == "onecore"
                         || mod_id == "essential"
+                        || mod_id == "ID"
+                        || dash_re.is_match(mod_id)
                     {
                         return None;
                     }
@@ -55,24 +62,28 @@ fn main() {
                 }
             })
             .collect::<Vec<_>>();
-        // Try to read from the file mods_in_skyclient.txt; if possible, make a list of each line.
-        let mods_in_skyclient_read = fs::read_to_string("mods_in_skyclient.txt");
-        if let Ok(mods_in_skyclient) = mods_in_skyclient_read {
-            // Say {}/{} mods used are in Skyclient.
-            let mods_in_skyclient = mods_in_skyclient.split("\n").collect::<Vec<_>>();
-            let mut mods_used_that_are_in_skyclient = Vec::new();
-            for mod_used in &mods_used {
-                if mods_in_skyclient.contains(mod_used) {
-                    mods_used_that_are_in_skyclient.push(mod_used);
-                }
-            }
-            print!(
-                "{}/{} mods used are in Skyclient. ",
-                mods_used_that_are_in_skyclient.len(),
-                mods_used.len()
-            );
+        if mods_used.len() == 0 {
+            print!("Couldn't detect mods used. ");
         } else {
-            print!("{} mods used. ", mods_used.len());
+            // Try to read from the file mods_in_skyclient.txt; if possible, make a list of each line.
+            let mods_in_skyclient_read = fs::read_to_string("mods_in_skyclient.txt");
+            if let Ok(mods_in_skyclient) = mods_in_skyclient_read {
+                // Say {}/{} mods used are in Skyclient.
+                let mods_in_skyclient = mods_in_skyclient.split("\n").collect::<Vec<_>>();
+                let mut mods_used_that_are_in_skyclient = Vec::new();
+                for mod_used in &mods_used {
+                    if mods_in_skyclient.contains(mod_used) {
+                        mods_used_that_are_in_skyclient.push(mod_used);
+                    }
+                }
+                print!(
+                    "{}/{} mods used are in Skyclient. ",
+                    mods_used_that_are_in_skyclient.len(),
+                    mods_used.len()
+                );
+            } else {
+                print!("{} mods used. ", mods_used.len());
+            }
         }
     }
     let time_re = Regex::new(r"(?m)^Time: (.+)").unwrap();
@@ -119,10 +130,18 @@ fn main() {
             .get("fixtype")
             .and_then(|fixtype| fixtype.as_i64())
             .unwrap_or(1);
+        let fix = crash_info
+            .get("fix")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .replace("%pathindicator%", "`")
+            .replace("%profileroot%", ".minecraft/skyclient")
+            .replace("%gameroot%", ".minecraft");
         if info_type == 1 {
-            solutions_found.push(crash_info.get("fix").unwrap().as_str().unwrap());
+            solutions_found.push(fix);
         } else if info_type == 2 {
-            recommendations_found.push(crash_info.get("fix").unwrap().as_str().unwrap());
+            recommendations_found.push(fix);
         }
     }
     if !recommendations_found.is_empty() {
