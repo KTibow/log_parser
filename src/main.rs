@@ -30,7 +30,7 @@ fn main() {
     let mut corrupt_mods_detected = Vec::new();
     if log_contents.contains(mod_list_marker) {
         let mod_re =
-            Regex::new(r"(?:\| UCHI[JE]A? \| ([a-zA-Z ']+?)\s+\| .+?\s+\| (.+?)\s+\||(?:UCHI[JE]A?\t)?([a-zA-Z ']+?)\{.+?\} \[.+?\] \((.+?)\) )").unwrap();
+            Regex::new(r"(?:\| UCHI?[JE]?A?\s+\| ([a-zA-Z ']+?)\s+\| .+?\s+\| (.+?)\s+\||(?:UCHI[JE]A?\t)?([a-zA-Z ']+?)\{.+?\} \[.+?\] \((.+?)\) )").unwrap();
         let dash_re = Regex::new(r"^-+$").unwrap();
         let mods_used = log_contents
             .split(mod_list_marker)
@@ -160,6 +160,30 @@ fn main() {
         }
         for corrupt_mod in &corrupt_mods_detected {
             println!("- {} might be corrupt, try removing it", corrupt_mod);
+        }
+        if log_contents.contains("JVM Flags:") {
+            let max_memory_re = Regex::new(r"JVM Flags: .*-Xmx([0-9]+)([GgMm]).*").unwrap();
+            if let Some(captures) = max_memory_re.captures(&log_contents) {
+                let max_memory_mb = captures.get(1).unwrap().as_str().parse::<u64>().unwrap()
+                    * match captures.get(2).unwrap().as_str() {
+                        "G" => 1024,
+                        "g" => 1024,
+                        "M" => 1,
+                        "m" => 1,
+                        _ => panic!("Unknown memory unit"),
+                    };
+                if max_memory_mb < 2048 {
+                    println!(
+                        "- Try increasing the max memory to at least 2GB, currently {:.2}GB",
+                        max_memory_mb / 1024
+                    );
+                } else if max_memory_mb > 4096 {
+                    println!(
+                        "- Try decreasing the max memory to at most 4GB, currently {:.2}GB",
+                        max_memory_mb / 1024
+                    );
+                }
+            }
         }
     }
     if !solutions_found.is_empty() {
