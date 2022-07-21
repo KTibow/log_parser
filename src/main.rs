@@ -30,7 +30,7 @@ fn main() {
     let mut corrupt_mods_detected = Vec::new();
     if log_contents.contains(mod_list_marker) {
         let mod_re =
-            Regex::new(r"(?:\| UCHI?[JE]?A?\s+\| ([a-zA-Z ']+?)\s+\| .+?\s+\| (.+?)\s+\||(?:UCHI[JE]A?\t)?([a-zA-Z ']+?)\{.+?\} \[.+?\] \((.+?)\) )").unwrap();
+            Regex::new(r"(?:\| UCH?I?[JE]?A?\s+\| ([a-zA-Z ']+?)\s+\| .+?\s+\| (.+?)\s+\||(?:UC?H?I?[JE]?A?\t)?([a-zA-Z ']+?)\{.+?\} \[.+?\] \((.+?)\) )").unwrap();
         let dash_re = Regex::new(r"^-+$").unwrap();
         let mods_used = log_contents
             .split(mod_list_marker)
