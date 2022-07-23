@@ -6,6 +6,8 @@ fn main() {
         .nth(1)
         .expect("Please provide a log file to read");
     let log_contents = fs::read_to_string(log_to_read).expect("Could not read log file");
+    let mut recommendations_found: Vec<String> = Vec::new();
+    let mut solutions_found: Vec<String> = Vec::new();
 
     println!("**Info**");
     let forge_re =
@@ -94,6 +96,27 @@ fn main() {
                 print!("{} mods used. ", mods_used.len());
             }
         }
+        if mods_used.contains(&"skyblockhud") && mods_used.contains(&"apec") {
+            recommendations_found.push(
+                "In general, selecting all the mods is a bad practice. \
+                You selected both SkyblockHUD and Apec, which do the same thing."
+                    .into(),
+            );
+        }
+        if mods_used.contains(&"skyblock_dungeons_guide") && mods_used.contains(&"dungeonrooms") {
+            recommendations_found.push(
+                "In general, selecting all the mods is a bad practice. \
+                You selected both Dungeons Guide and Dungeon Rooms, which do the same thing."
+                    .into(),
+            );
+        }
+        if mods_used.contains(&"musicplayer") && mods_used.contains(&"craftify") {
+            recommendations_found.push(
+                "In general, selecting all the mods is a bad practice. \
+                You selected both Music Player and Craftify, which do the same thing."
+                    .into(),
+            );
+        }
     }
     let time_re = Regex::new(r"(?m)^Time: (.+)").unwrap();
     if let Some(captures) = time_re.captures(&log_contents) {
@@ -106,8 +129,6 @@ fn main() {
         fs::read_to_string("crash_data.json").expect("Could not read crash data file");
     let crash_data: serde_json::Value =
         serde_json::from_str(&crash_data_contents).expect("Could not parse crash data");
-    let mut recommendations_found = Vec::new();
-    let mut solutions_found = Vec::new();
     for crash_info in crash_data.get("fixes").unwrap().as_array().unwrap() {
         let causes = crash_info.get("causes").unwrap().as_array().unwrap();
         let mut causes_match = true;
@@ -153,37 +174,37 @@ fn main() {
             recommendations_found.push(fix);
         }
     }
+    for corrupt_mod in &corrupt_mods_detected {
+        recommendations_found.push(format!("{} might be corrupt, try removing it", corrupt_mod));
+    }
+    if log_contents.contains("JVM Flags:") {
+        let max_memory_re = Regex::new(r"JVM Flags: .*-Xmx([0-9]+)([GgMm]).*").unwrap();
+        if let Some(captures) = max_memory_re.captures(&log_contents) {
+            let max_memory_mb = captures.get(1).unwrap().as_str().parse::<u64>().unwrap()
+                * match captures.get(2).unwrap().as_str() {
+                    "G" => 1024,
+                    "g" => 1024,
+                    "M" => 1,
+                    "m" => 1,
+                    _ => panic!("Unknown memory unit"),
+                };
+            if max_memory_mb < 2048 {
+                recommendations_found.push(format!(
+                    "Try increasing the max memory to at least 2GB, currently {:.2}GB",
+                    max_memory_mb / 1024
+                ));
+            } else if max_memory_mb > 4096 {
+                recommendations_found.push(format!(
+                    "Try decreasing the max memory to at most 4GB, currently {:.2}GB",
+                    max_memory_mb / 1024
+                ));
+            }
+        }
+    }
     if !recommendations_found.is_empty() {
         println!("**Recommendations**");
         for recommendation in &recommendations_found {
             println!("- {}", recommendation);
-        }
-        for corrupt_mod in &corrupt_mods_detected {
-            println!("- {} might be corrupt, try removing it", corrupt_mod);
-        }
-        if log_contents.contains("JVM Flags:") {
-            let max_memory_re = Regex::new(r"JVM Flags: .*-Xmx([0-9]+)([GgMm]).*").unwrap();
-            if let Some(captures) = max_memory_re.captures(&log_contents) {
-                let max_memory_mb = captures.get(1).unwrap().as_str().parse::<u64>().unwrap()
-                    * match captures.get(2).unwrap().as_str() {
-                        "G" => 1024,
-                        "g" => 1024,
-                        "M" => 1,
-                        "m" => 1,
-                        _ => panic!("Unknown memory unit"),
-                    };
-                if max_memory_mb < 2048 {
-                    println!(
-                        "- Try increasing the max memory to at least 2GB, currently {:.2}GB",
-                        max_memory_mb / 1024
-                    );
-                } else if max_memory_mb > 4096 {
-                    println!(
-                        "- Try decreasing the max memory to at most 4GB, currently {:.2}GB",
-                        max_memory_mb / 1024
-                    );
-                }
-            }
         }
     }
     if !solutions_found.is_empty() {
