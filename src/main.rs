@@ -103,17 +103,17 @@ fn main() {
                     .into(),
             );
         }
-        if mods_used.contains(&"skyblock_dungeons_guide") && mods_used.contains(&"dungeonrooms") {
-            recommendations_found.push(
-                "In general, selecting all the mods is a bad practice. \
-                You selected both Dungeons Guide and Dungeon Rooms, which do the same thing."
-                    .into(),
-            );
-        }
         if mods_used.contains(&"musicplayer") && mods_used.contains(&"craftify") {
             recommendations_found.push(
                 "In general, selecting all the mods is a bad practice. \
                 You selected both Music Player and Craftify, which do the same thing."
+                    .into(),
+            );
+        }
+        if !mods_used.contains(&"patcher") {
+            recommendations_found.push(
+                "You didn't select the Patcher mod. \
+                Patcher fixes some bugs, and improves FPS."
                     .into(),
             );
         }
