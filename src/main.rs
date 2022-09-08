@@ -1,5 +1,5 @@
 use regex::Regex;
-use std::{env, fs};
+use std::{collections, env, fs};
 
 fn main() {
     let log_to_read = env::args()
@@ -39,9 +39,9 @@ fn main() {
             .nth(1)
             .unwrap()
             .split("Loaded coremods (and transformers):")
-            .nth(0)
+            .next()
             .unwrap()
-            .split("\n")
+            .split('\n')
             .filter_map(|line| {
                 if let Some(captures) = mod_re.captures(line) {
                     let mod_id = captures
@@ -72,24 +72,21 @@ fn main() {
                     None
                 }
             })
-            .collect::<Vec<_>>();
-        if mods_used.len() == 0 {
+            .collect::<collections::HashSet<_>>();
+        if mods_used.is_empty() {
             print!("Couldn't detect mods used. ");
         } else {
             // Try to read from the file mods_in_skyclient.txt; if possible, make a list of each line.
             let mods_in_skyclient_read = fs::read_to_string("mods_in_skyclient.txt");
             if let Ok(mods_in_skyclient) = mods_in_skyclient_read {
                 // Say {}/{} mods used are in Skyclient.
-                let mods_in_skyclient = mods_in_skyclient.split("\n").collect::<Vec<_>>();
-                let mut mods_used_that_are_in_skyclient = Vec::new();
-                for mod_used in &mods_used {
-                    if mods_in_skyclient.contains(mod_used) {
-                        mods_used_that_are_in_skyclient.push(mod_used);
-                    }
-                }
+                let mods_in_skyclient = mods_in_skyclient
+                    .split('\n')
+                    .collect::<collections::HashSet<_>>();
+                let mods_used_that_are_in_skyclient = mods_in_skyclient.intersection(&mods_used);
                 print!(
                     "{}/{} mods used are in Skyclient. ",
-                    mods_used_that_are_in_skyclient.len(),
+                    mods_used_that_are_in_skyclient.count(),
                     mods_used.len()
                 );
             } else {
@@ -123,7 +120,7 @@ fn main() {
         let time = captures.get(1).unwrap().as_str();
         print!("From {}. ", time);
     }
-    println!("");
+    println!();
 
     let crash_data_contents =
         fs::read_to_string("crash_data.json").expect("Could not read crash data file");
